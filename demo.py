@@ -26,6 +26,7 @@ def main():
     client.put_object(file_path, "/test/99.txt")
     # list_object
     # 展示某个目录下所有的文件和文件夹 返回一个list，为文件或文件架的完整路径 参数为prefix=查询的目录路径
+    # 如果失败则返回一个空的list
     obs = client.list_object("test")
     print(obs)
     # 返回['/test/98.txt', '/test/99.txt']
@@ -46,7 +47,7 @@ def main():
     # 上传多个文件 参数为 src=本地的目录地址,需为一个文件夹地址 dst=保存到远端的目录地址(为一个目录地址)
     # recursive(可选)=是否上传子文件的内容，默认自动上传子文件内的内容，关闭则填False datacenter(可选)=优先的数据中心 rack(可选)=优先的机架
     # replication(可选)=备份机制,默认无 查看https://github.com/chrislusf/seaweedfs/wiki/Replication填写 ttl(可选，默认无过期时间)=过期时间
-    # 返回一个requests.Response 上传文件保证不会分块(chunks) 如果成功则返回的是最后一个
+    # 返回一个requests.Response 上传文件保证不会分块(chunks) 如果成功则返回的是最后一个上传文件的requests.Response 如果失败则返回失败呢个文件的requests.Response
     # 远端的目录地址后可以加上/也可以不加上 即test 和test/ 都认为是一个名为test的文件夹
 
     # 未上传子文件夹test1内容
