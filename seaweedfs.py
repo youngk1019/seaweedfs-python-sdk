@@ -44,10 +44,10 @@ class Client:
                    dst: str,
                    datacenter="DefaultDataCenter",
                    rack="DefaultRack",
+                   datanode="",
                    replication="",
                    ttl=""
                    ) -> requests.Response:
-
         if dst.startswith("/"):
             dst = dst[1:]
         if src == "":
@@ -60,6 +60,7 @@ class Client:
             "maxMB": str(os.stat(src).st_size // MB_SIZE + 1),
             "dataCenter": datacenter,
             "rack": rack,
+            "dataNode": datanode,
             "replication": replication,
             "ttl": ttl,
         }
@@ -73,14 +74,21 @@ class Client:
     def put_objects(self, src: str,
                     dst: str,
                     recursive=True,
+                    cover=False,
                     datacenter="DefaultDataCenter",
                     rack="DefaultRack",
+                    datanode="",
                     replication="",
                     ttl="") -> requests.Response:
         if not dst.endswith("/"):
             dst = dst + "/"
+        if not dst.startswith("/"):
+            dst = "/" + dst
         response = requests.Response
         response.status_code = http.HTTPStatus.CREATED
+        exist = []
+        if not cover:
+            exist = self.list_object(dst)
         for f in os.listdir(src):
             src_path = os.path.join(src, f)
             dst_path = dst + f
@@ -92,17 +100,21 @@ class Client:
                         recursive=recursive,
                         datacenter=datacenter,
                         rack=rack,
+                        datanode=datanode,
                         replication=replication,
                         ttl=ttl,
                     )
                     if response.status_code != http.HTTPStatus.CREATED:
                         return response
             else:
+                if dst_path in exist:
+                    continue
                 response = self.put_object(
                     src=src_path,
                     dst=dst_path,
                     datacenter=datacenter,
                     rack=rack,
+                    datanode=datanode,
                     replication=replication,
                     ttl=ttl,
                 )
