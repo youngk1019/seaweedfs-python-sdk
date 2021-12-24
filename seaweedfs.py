@@ -100,6 +100,7 @@ class Client:
                         src=src_path,
                         dst=dst_path,
                         recursive=recursive,
+                        cover=cover,
                         datacenter=datacenter,
                         rack=rack,
                         datanode=datanode,
