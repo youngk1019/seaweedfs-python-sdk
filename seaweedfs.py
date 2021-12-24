@@ -1,6 +1,8 @@
 import http
 import json
 import os
+from io import BytesIO
+from typing import BinaryIO
 
 import requests
 
@@ -122,13 +124,13 @@ class Client:
                     return response
         return response
 
-    def get_object(self, src: str) -> bytes:
+    def get_object(self, src: str) -> BinaryIO:
         if src.startswith("/"):
             src = src[1:]
         response = requests.get(
             url=self._url + "/" + src,
         )
-        return response.content
+        return BytesIO(response.content)
 
     def delete_object(self, src: str,
                       recursive=False,
