@@ -14,7 +14,8 @@ def main():
     client.delete_object("test", recursive=True)
 
     # put_object
-    # 上传文件 参数为 src=本地的目录地址 dst=保存到远端的目录地址 datacenter(可选)=优先的数据中心 rack(可选)=优先的机架
+    # 上传文件 参数为 src=本地的目录地址 dst=保存到远端的目录地址
+    # datacenter(可选)=优先的数据中心 rack(可选)=优先的机架 datanode(可选)=优先的存储节点
     # replication(可选)=备份机制,默认无 查看https://github.com/chrislusf/seaweedfs/wiki/Replication填写 ttl(可选，默认无过期时间)=过期时间
     # 返回一个requests.Response 上传文件保证不会分块(chunks)
     # 远端的目录地址前可以加上/也可以不加 test/1.txt 和 /test/1.txt 等效 后续同理
@@ -45,7 +46,8 @@ def main():
 
     # put_objects
     # 上传多个文件 参数为 src=本地的目录地址,需为一个文件夹地址 dst=保存到远端的目录地址(为一个目录地址)
-    # recursive(可选)=是否上传子文件的内容，默认自动上传子文件内的内容，关闭则填False datacenter(可选)=优先的数据中心 rack(可选)=优先的机架
+    # recursive(可选)=是否上传子文件的内容，默认自动上传子文件内的内容，关闭则填False cover(可选)=是否覆盖远端同命名的文件，默认为不覆盖，覆盖则填True，往往用于网络传送失败重新上传
+    # datacenter(可选)=优先的数据中心 rack(可选)=优先的机架 datanode(可选)=优先的存储节点
     # replication(可选)=备份机制,默认无 查看https://github.com/chrislusf/seaweedfs/wiki/Replication填写 ttl(可选，默认无过期时间)=过期时间
     # 返回一个requests.Response 上传文件保证不会分块(chunks) 如果成功则返回的是最后一个上传文件的requests.Response 如果失败则返回失败呢个文件的requests.Response
     # 远端的目录地址后可以加上/也可以不加上 即test 和test/ 都认为是一个名为test的文件夹
@@ -98,10 +100,10 @@ def main():
 
     for ob in obs:
         # get_object
-        # 下载文件 ，参数为 src=保存到远端的完整目录路径，返回一个bytes，为文件的二进制信息,如果下载失败则返回一个长度为零的bytes
-        ret = client.get_object(ob)
-        with open(ob[6:], "wb") as f:
-            f.write(ret)
+        # 下载文件 ，参数为 src=保存到远端的完整目录路径，返回一个BinaryIO，为文件的二进制信息的IO流,如果下载失败(文件不存在)则返回一个空的二进制IO流
+        with client.get_object(ob) as r:
+            with open(ob[6:], "wb") as w:
+                w.write(r.read())
 
 
 if __name__ == "__main__":
