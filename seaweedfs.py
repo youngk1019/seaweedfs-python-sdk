@@ -17,9 +17,8 @@ class Client:
         headers = {
             "Accept": "application/json"
         }
-        if prefix.startswith("/"):
-            prefix = prefix[1:]
-
+        if not prefix.startswith("/"):
+            prefix = "/" + prefix
         ret = []
         load_more = True
         last_file_name = ""
@@ -28,7 +27,7 @@ class Client:
                 "lastFileName": last_file_name,
             }
             response = requests.get(
-                url=self._url + "/" + prefix,
+                url=self._url + prefix,
                 headers=headers,
                 params=params,
             )
@@ -50,11 +49,11 @@ class Client:
                    replication="",
                    ttl=""
                    ) -> requests.Response:
-        if dst.startswith("/"):
-            dst = dst[1:]
+        if not dst.startswith("/"):
+            dst = "/" + dst
         if src == "":
             response = requests.post(
-                url=self._url + "/" + dst,
+                url=self._url + dst,
                 data=None,
             )
             return response
@@ -67,7 +66,7 @@ class Client:
             "ttl": ttl,
         }
         response = requests.post(
-            url=self._url + "/" + dst,
+            url=self._url + dst,
             params=params,
             files={'file': open(src, "rb")},
         )
@@ -126,10 +125,10 @@ class Client:
         return response
 
     def get_object(self, src: str) -> BinaryIO:
-        if src.startswith("/"):
-            src = src[1:]
+        if not src.startswith("/"):
+            src = "/" + src
         response = requests.get(
-            url=self._url + "/" + src,
+            url=self._url + src,
         )
         return BytesIO(response.content)
 
@@ -141,10 +140,10 @@ class Client:
             "ignoreRecursiveError": "true" if ignore_recursive_error else "false",
             "skipChunkDeletion": "false",
         }
-        if src.startswith("/"):
-            src = src[1:]
+        if not src.startswith("/"):
+            src = "/" + src
         response = requests.delete(
-            url=self._url + "/" + src,
+            url=self._url + src,
             params=params,
         )
         return response
