@@ -8,10 +8,10 @@ MB_SIZE = 1024 * 1024
 
 
 class Client:
-    def __init__(self, filer):
+    def __init__(self, filer: str):
         self._url = "http://" + filer
 
-    def list_object(self, prefix):
+    def list_object(self, prefix: str) -> list:
         headers = {
             "Accept": "application/json"
         }
@@ -40,11 +40,14 @@ class Client:
                 return ret
         return ret
 
-    def put_object(self, src, dst,
+    def put_object(self, src: str,
+                   dst: str,
                    datacenter="DefaultDataCenter",
                    rack="DefaultRack",
                    replication="",
-                   ttl=""):
+                   ttl=""
+                   ) -> requests.Response:
+
         if dst.startswith("/"):
             dst = dst[1:]
         if src == "":
@@ -67,12 +70,13 @@ class Client:
         )
         return response
 
-    def put_objects(self, src, dst,
+    def put_objects(self, src: str,
+                    dst: str,
                     recursive=True,
                     datacenter="DefaultDataCenter",
                     rack="DefaultRack",
                     replication="",
-                    ttl=""):
+                    ttl="") -> requests.Response:
         if not dst.endswith("/"):
             dst = dst + "/"
         response = requests.Response
@@ -106,7 +110,7 @@ class Client:
                     return response
         return response
 
-    def get_object(self, src):
+    def get_object(self, src: str) -> bytes:
         if src.startswith("/"):
             src = src[1:]
         response = requests.get(
@@ -114,9 +118,9 @@ class Client:
         )
         return response.content
 
-    def delete_object(self, src,
+    def delete_object(self, src: str,
                       recursive=False,
-                      ignore_recursive_error=False):
+                      ignore_recursive_error=False) -> requests.Response:
         params = {
             "recursive": "true" if recursive else "false",
             "ignoreRecursiveError": "true" if ignore_recursive_error else "false",
