@@ -1,19 +1,23 @@
 import http
 import json
 import os
+import sys
 from io import BytesIO
 from typing import BinaryIO
 
 import requests
 
 MB_SIZE = 1024 * 1024
+Mode_Dir = 2 ** 31
 
 
 class Client:
     def __init__(self, filer: str):
         self._url = "http://" + filer
 
-    def list_object(self, prefix: str) -> list:
+    def list_object(self, prefix: str,
+                    show_isdir=False,
+                    ) -> list:
         headers = {
             "Accept": "application/json"
         }
@@ -26,18 +30,34 @@ class Client:
             params = {
                 "lastFileName": last_file_name,
             }
-            response = requests.get(
-                url=self._url + prefix,
-                headers=headers,
-                params=params,
-            )
             try:
-                content = json.loads(response.content)
+                response = requests.get(
+                    url=self._url + prefix,
+                    headers=headers,
+                    params=params,
+                )
+                if response.status_code != http.HTTPStatus.OK:
+                    print("Failed to list", prefix, response, file=sys.stderr)
+                    return ret
+            except requests.RequestException as e:
+                print("Failed to list", prefix, e, file=sys.stderr)
+                return ret
+            try:
+                try:
+                    content = json.loads(response.content)
+                except json.decoder.JSONDecodeError:
+                    return ret
                 for u in content["Entries"]:
-                    ret.append(u["FullPath"])
+                    if show_isdir:
+                        ret.append({
+                            "FullPath": u["FullPath"],
+                            "isDir": u["Mode"] & Mode_Dir > 0,
+                        })
+                    else:
+                        ret.append(u["FullPath"])
                 load_more = content["ShouldDisplayLoadMore"]
                 last_file_name = content["LastFileName"]
-            except:
+            except KeyError:
                 return ret
         return ret
 
@@ -47,7 +67,8 @@ class Client:
                    rack="DefaultRack",
                    datanode="",
                    replication="",
-                   ttl=""
+                   ttl="",
+                   debug=False,
                    ) -> requests.Response:
         if not dst.startswith("/"):
             dst = "/" + dst
@@ -65,12 +86,21 @@ class Client:
             "replication": replication,
             "ttl": ttl,
         }
-        response = requests.post(
-            url=self._url + dst,
-            params=params,
-            files={'file': open(src, "rb")},
-        )
-        return response
+        try:
+            response = requests.post(
+                url=self._url + dst,
+                params=params,
+                files={'file': open(src, "rb")},
+            )
+            if response.status_code != http.HTTPStatus.CREATED:
+                print("Failed to put", dst, response, file=sys.stderr)
+                return response
+            if debug:
+                print("put", dst, "successfully", file=sys.stderr)
+            return response
+        except requests.RequestException as e:
+            print("Failed to put", dst, e, file=sys.stderr)
+            return e.response
 
     def put_objects(self, src: str,
                     dst: str,
@@ -80,7 +110,9 @@ class Client:
                     rack="DefaultRack",
                     datanode="",
                     replication="",
-                    ttl="") -> requests.Response:
+                    ttl="",
+                    debug=False,
+                    ) -> requests.Response:
         if not dst.endswith("/"):
             dst = dst + "/"
         if not dst.startswith("/"):
@@ -105,6 +137,7 @@ class Client:
                         datanode=datanode,
                         replication=replication,
                         ttl=ttl,
+                        debug=debug,
                     )
                     if response.status_code != http.HTTPStatus.CREATED:
                         return response
@@ -119,22 +152,35 @@ class Client:
                     datanode=datanode,
                     replication=replication,
                     ttl=ttl,
+                    debug=debug,
                 )
                 if response.status_code != http.HTTPStatus.CREATED:
                     return response
         return response
 
-    def get_object(self, src: str) -> BinaryIO:
+    def get_object(self, src: str,
+                   debug=False,
+                   ) -> BinaryIO:
         if not src.startswith("/"):
             src = "/" + src
-        response = requests.get(
-            url=self._url + src,
-        )
-        return BytesIO(response.content)
+        try:
+            response = requests.get(
+                url=self._url + src,
+            )
+            if response.status_code != http.HTTPStatus.OK:
+                print("Failed to get", src, response, file=sys.stderr)
+                return BytesIO(b"")
+            if debug:
+                print("get", src, "successfully", file=sys.stderr)
+            return BytesIO(response.content)
+        except requests.RequestException as e:
+            print("Failed to get", src, e, file=sys.stderr)
+            return BytesIO(b"")
 
     def delete_object(self, src: str,
                       recursive=False,
-                      ignore_recursive_error=False) -> requests.Response:
+                      ignore_recursive_error=False,
+                      ) -> requests.Response:
         params = {
             "recursive": "true" if recursive else "false",
             "ignoreRecursiveError": "true" if ignore_recursive_error else "false",
@@ -142,8 +188,38 @@ class Client:
         }
         if not src.startswith("/"):
             src = "/" + src
-        response = requests.delete(
-            url=self._url + src,
-            params=params,
-        )
-        return response
+        try:
+            response = requests.delete(
+                url=self._url + src,
+                params=params,
+            )
+            if response.status_code != http.HTTPStatus.NO_CONTENT:
+                print("Failed to delete", src, response, file=sys.stderr)
+            return response
+        except requests.RequestException as e:
+            print("Failed to delete", src, e, file=sys.stderr)
+            return e.response
+
+    def is_dir(self, src: str) -> bool:
+        if not src.startswith("/"):
+            src = "/" + src
+        try:
+            response = requests.head(
+                url=self._url + src,
+            )
+            if response.status_code == http.HTTPStatus.NOT_FOUND:
+                print(src, "is not exist", file=sys.stderr)
+                return False
+            if response.status_code != http.HTTPStatus.OK:
+                print("Failed to is dir", src, response, file=sys.stderr)
+                return False
+            headers = response.headers
+            if "Content-Length" in headers:
+                return False
+            if "Content-Type" in headers:
+                return True
+            print(src, "is not exist", file=sys.stderr)
+            return False
+        except requests.RequestException as e:
+            print("Failed to is dir", src, e.response, file=sys.stderr)
+            return True

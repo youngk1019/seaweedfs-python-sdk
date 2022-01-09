@@ -23,11 +23,16 @@ def main():
     # 如果创建一个文件夹，则src填写""即可 dst最后必须加上/
 
     # 正常上传
-    client.put_object(file_path, "test/98.txt")
-    client.put_object(file_path, "/test/99.txt")
+    obs = client.put_object(file_path, "test/98.txt", debug=True)
+    print(obs)
+    # 返回<Response [201]>
+    obs = client.put_object(file_path, "/test/99.txt")
+    print(obs)
+    # 返回<Response [201]>
     # list_object
     # 展示某个目录下所有的文件和文件夹 返回一个list，为文件或文件架的完整路径 参数为prefix=查询的目录路径
     # 如果失败则返回一个空的list
+    # show_isdir(可选) 默认为False，如果为True，则每个对象为一个map{'FullPath': '/test/1.txt', 'isDir': False}，第一项是文件名，第二项是否为文件夹，如果是则为True，否则为False
     obs = client.list_object("test")
     print(obs)
     # 返回['/test/98.txt', '/test/99.txt']
@@ -40,7 +45,7 @@ def main():
 
     # 创建文件夹
     client.put_object("", "test/test2/")
-    obs = client.list_object("/test")
+    obs = client.list_object("/test/")
     print(obs)
     # 返回['/test/100.txt', '/test/98.txt', '/test/99.txt', '/test/test2']
 
@@ -53,19 +58,39 @@ def main():
     # 远端的目录地址后可以加上/也可以不加上 即test 和test/ 都认为是一个名为test的文件夹
 
     # 未上传子文件夹test1内容
-    client.put_objects(dir_path, "test", recursive=False)
+    obs = client.put_objects(dir_path, "test", recursive=False)
+    print(obs)
+    # 返回<Response [201]>
     obs = client.list_object("test")
     print(obs)
     # 返回['/test/1.txt', '/test/100.txt', '/test/2.txt', '/test/3.txt', '/test/98.txt', '/test/99.txt', '/test/test2']
 
     # 上传子文件夹内容
-    client.put_objects(dir_path, "test")
+    obs = client.put_objects(dir_path, "test")
+    print(obs)
     obs = client.list_object("test")
     print(obs)
     # 返回['/test/1.txt', '/test/100.txt', '/test/2.txt', '/test/3.txt', '/test/98.txt', '/test/99.txt', '/test/test1', '/test/test2']
+    obs = client.list_object("test", show_isdir=True)
+    print(obs)
+    # 返回[{'FullPath': '/test/1.txt', 'isDir': False}, {'FullPath': '/test/100.txt', 'isDir': False}, {'FullPath': '/test/2.txt', 'isDir': False}, {'FullPath': '/test/3.txt', 'isDir': False}, {'FullPath': '/test/98.txt', 'isDir': False}, {'FullPath': '/test/99.txt', 'isDir': False}, {'FullPath': '/test/a.exe', 'isDir': False}, {'FullPath': '/test/b.cpp', 'isDir': False}, {'FullPath': '/test/test1', 'isDir': True}, {'FullPath': '/test/test2', 'isDir': True}]
     obs = client.list_object("test/test1")
     print(obs)
     # 返回['/test/test1/4.txt', '/test/test1/5.txt', '/test/test1/6.txt']
+
+    # is_dir
+    # 获得该目录是否是文件夹 ，参数为 src=保存到远端的完整目录路径，返回一个bool,如果是则返回True，否则会返回False，如果不存在则会在stderr打印信息
+
+    obs = client.is_dir("/test/test1")
+    print(obs)
+    # 返回True
+    obs = client.is_dir("/test/test1/6.txt")
+    print(obs)
+    # 返回False
+    obs = client.is_dir("/test/t")
+    print(obs)
+    # 返回False
+    # stderr 打印 /test/t is not exist
 
     # delete_object
     # 删除文件，参数为 src=保存到远端的完整目录路径
@@ -75,25 +100,33 @@ def main():
     # 返回一个requests.Response
 
     # 删除单个文件
-    client.delete_object("test/98.txt")
+    obs = client.delete_object("test/98.txt")
+    print(obs)
+    # 返回<Response [204]>
     obs = client.list_object("test")
     print(obs)
     # 返回['/test/1.txt', '/test/100.txt', '/test/2.txt', '/test/3.txt', '/test/99.txt', '/test/test1', '/test/test2']
 
     # 删除空文件夹成功
-    client.delete_object("test/test2")
+    obs = client.delete_object("test/test2")
+    print(obs)
+    # 返回<Response [204]>
     obs = client.list_object("test")
     print(obs)
     # 返回['/test/1.txt', '/test/100.txt', '/test/2.txt', '/test/3.txt', '/test/99.txt', '/test/test1']
 
     # 删除存在文件的文件夹 非递归删除失败
-    client.delete_object("test/test1")
+    obs = client.delete_object("test/test1")
+    print(obs)
+    # 返回<Response [500]>
     obs = client.list_object("test")
     print(obs)
     # 返回['/test/1.txt', '/test/100.txt', '/test/2.txt', '/test/3.txt', '/test/99.txt', '/test/test1']
 
     # 递归删除文件夹成功
-    client.delete_object("test/test1", recursive=True)
+    obs = client.delete_object("test/test1", recursive=True)
+    print(obs)
+    # 返回<Response [204]>
     obs = client.list_object("test")
     print(obs)
     # 返回['/test/1.txt', '/test/100.txt', '/test/2.txt', '/test/3.txt', '/test/99.txt']
@@ -101,7 +134,7 @@ def main():
     for ob in obs:
         # get_object
         # 下载文件 ，参数为 src=保存到远端的完整目录路径，返回一个BinaryIO，为文件的二进制信息的IO流,如果下载失败(文件不存在)则返回一个空的二进制IO流
-        with client.get_object(ob) as r:
+        with client.get_object(ob, debug=True) as r:
             with open(ob[6:], "wb") as w:
                 w.write(r.read())
 
