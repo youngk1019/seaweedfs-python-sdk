@@ -73,7 +73,7 @@ def main():
     # 返回['/test/1.txt', '/test/100.txt', '/test/2.txt', '/test/3.txt', '/test/98.txt', '/test/99.txt', '/test/test1', '/test/test2']
     obs = client.list_object("test", show_isdir=True)
     print(obs)
-    # 返回[{'FullPath': '/test/1.txt', 'isDir': False}, {'FullPath': '/test/100.txt', 'isDir': False}, {'FullPath': '/test/2.txt', 'isDir': False}, {'FullPath': '/test/3.txt', 'isDir': False}, {'FullPath': '/test/98.txt', 'isDir': False}, {'FullPath': '/test/99.txt', 'isDir': False}, {'FullPath': '/test/a.exe', 'isDir': False}, {'FullPath': '/test/b.cpp', 'isDir': False}, {'FullPath': '/test/test1', 'isDir': True}, {'FullPath': '/test/test2', 'isDir': True}]
+    # 返回[{'FullPath': '/test/1.txt', 'isDir': False}, {'FullPath': '/test/100.txt', 'isDir': False}, {'FullPath': '/test/2.txt', 'isDir': False}, {'FullPath': '/test/3.txt', 'isDir': False}, {'FullPath': '/test/98.txt', 'isDir': False}, {'FullPath': '/test/99.txt', 'isDir': False}, {'FullPath': '/test/test1', 'isDir': True}, {'FullPath': '/test/test2', 'isDir': True}]
     obs = client.list_object("test/test1")
     print(obs)
     # 返回['/test/test1/4.txt', '/test/test1/5.txt', '/test/test1/6.txt']
